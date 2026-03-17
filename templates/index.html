@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code Usage Monitor - 使用监控面板</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>📊 Claude Code Usage Monitor</h1>
+            <p class="subtitle">实时监控您的 Claude Code 使用情况和花销</p>
+            <div class="header-actions">
+                <select id="timeRange" class="time-selector">
+                    <option value="24">最近24小时</option>
+                    <option value="168">最近7天</option>
+                    <option value="720">最近30天</option>
+                    <option value="">所有时间</option>
+                </select>
+                <button id="refreshBtn" class="btn-refresh">🔄 刷新</button>
+            </div>
+        </header>
+
+        <!-- 预算警告区域 -->
+        <div id="alertsContainer" class="alerts-container"></div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-label">总花费</div>
+                    <div class="stat-value" id="totalCost">$0.00</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-content">
+                    <div class="stat-label">总Tokens</div>
+                    <div class="stat-value" id="totalTokens">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">🔄</div>
+                <div class="stat-content">
+                    <div class="stat-label">请求次数</div>
+                    <div class="stat-value" id="totalRequests">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-content">
+                    <div class="stat-label">平均每次</div>
+                    <div class="stat-value" id="avgCost">$0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 预算进度条 -->
+        <div class="budget-section">
+            <h2>💳 预算使用情况</h2>
+            <div class="budget-controls">
+                <button id="budgetSettingsBtn" class="btn-settings">⚙️ 设置预算</button>
+            </div>
+
+            <div class="budget-bars">
+                <div class="budget-item">
+                    <div class="budget-header">
+                        <span>今日</span>
+                        <span id="dailyBudgetText">$0.00 / $10.00</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="dailyProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="budget-item">
+                    <div class="budget-header">
+                        <span>本周</span>
+                        <span id="weeklyBudgetText">$0.00 / $50.00</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="weeklyProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="budget-item">
+                    <div class="budget-header">
+                        <span>本月</span>
+                        <span id="monthlyBudgetText">$0.00 / $200.00</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="monthlyProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h2>📈 花费趋势</h2>
+                <canvas id="costChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h2>🤖 模型使用分布</h2>
+                <canvas id="modelChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 模型统计表格 -->
+        <div class="table-container">
+            <h2>🔧 模型详细统计</h2>
+            <table class="data-table" id="modelTable">
+                <thead>
+                    <tr>
+                        <th>模型</th>
+                        <th>请求次数</th>
+                        <th>输入Tokens</th>
+                        <th>输出Tokens</th>
+                        <th>缓存Tokens</th>
+                        <th>花费</th>
+                    </tr>
+                </thead>
+                <tbody id="modelTableBody">
+                    <tr>
+                        <td colspan="6" class="loading">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 最近请求 -->
+        <div class="table-container">
+            <h2>⏱️ 最近请求记录</h2>
+            <table class="data-table" id="recentTable">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>模型</th>
+                        <th>输入</th>
+                        <th>输出</th>
+                        <th>花费</th>
+                    </tr>
+                </thead>
+                <tbody id="recentTableBody">
+                    <tr>
+                        <td colspan="5" class="loading">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>Claude Code Usage Monitor | 数据来源: ~/.claude/telemetry</p>
+            <p class="last-update">最后更新: <span id="lastUpdate">--</span></p>
+        </footer>
+    </div>
+
+    <!-- 预算设置模态框 -->
+    <div id="budgetModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>⚙️ 预算设置</h2>
+            <form id="budgetForm">
+                <div class="form-group">
+                    <label for="dailyLimit">每日预算 (USD)</label>
+                    <input type="number" id="dailyLimit" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="weeklyLimit">每周预算 (USD)</label>
+                    <input type="number" id="weeklyLimit" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="monthlyLimit">每月预算 (USD)</label>
+                    <input type="number" id="monthlyLimit" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="alertThreshold">警告阈值 (%)</label>
+                    <input type="number" id="alertThreshold" step="1" min="1" max="100" value="80" required>
+                    <small>当达到预算的此百分比时发出警告</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 保存</button>
+                    <button type="button" class="btn-secondary" id="cancelBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
