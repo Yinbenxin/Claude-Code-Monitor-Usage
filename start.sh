@@ -13,17 +13,12 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# 检查依赖
-if [ ! -d "venv" ]; then
-    echo "📦 创建虚拟环境..."
-    python3 -m venv venv
-fi
-
-echo "🔧 激活虚拟环境..."
-source venv/bin/activate
+echo "� 使用本地 Python 环境..."
 
 echo "📥 安装/更新依赖..."
-pip install -q -r requirements.txt
+python3 -m pip install -q --user -r requirements.txt || \
+python3 -m pip install -q --user --break-system-packages -r requirements.txt || \
+echo "⚠️ 依赖安装失败（可能是 PEP 668 / Homebrew Python 限制），继续尝试启动..."
 
 echo ""
 echo "✅ 准备就绪！"
