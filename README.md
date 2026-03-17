@@ -25,10 +25,6 @@
 
 ### Web 监控面板
 
-**顶部统计卡片 & 预算面板**
-
-![Dashboard Overview](docs/screenshots/dashboard.png)
-
 **完整页面（含图表和数据表格）**
 
 ![Full Dashboard](docs/screenshots/dashboard-full.png)
